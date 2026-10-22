@@ -45,3 +45,4 @@ Each feature file starts with an H1 title and one paragraph describing the user-
 - [Continue an explanation](./continue-explanation.md) covers the learner moving from the first explanation to the next block.
 - [Answer a multiple-choice question](./answer-multiple-choice.md) covers the intercept question in the slope-intercept lesson.
 - [Build a site](./build-site.md) covers the index page that links rendered lessons.
+- [Grade a simulation goal](./grade-simulation-goal.md) covers Check on the `make-slope-two` goal: the start state, Solid after a correct first Check, Review after a miss and the hint, and Show answer after two misses.
