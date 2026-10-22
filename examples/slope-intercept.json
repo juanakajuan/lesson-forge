@@ -1,0 +1,169 @@
+{
+  "title": "Lines: slope and intercept",
+  "audience": "Students who can plot points on a coordinate grid but have not used y = mx + b",
+  "objectives": [
+    { "id": "intercept-meaning", "text": "Learner can identify b in y = mx + b as the point where the line crosses the y-axis", "level": "recall" },
+    { "id": "slope-from-points", "text": "Learner can compute the slope of a line from two points", "level": "apply" },
+    { "id": "line-through-points", "text": "Learner can choose m and b so a line passes through two given points", "level": "analyze" }
+  ],
+  "blocks": [
+    {
+      "kind": "explain",
+      "id": "intro",
+      "objectiveIds": ["intercept-meaning", "slope-from-points"],
+      "markdown": "Every straight line on a grid can be written as **y = mx + b**.\n\n- **m** is the *slope*: how steep the line is.\n- **b** is the *intercept*: where the line crosses the y-axis.\n\nTry it before we name anything else."
+    },
+    {
+      "kind": "simulation",
+      "id": "explore-line",
+      "objectiveIds": ["intercept-meaning", "slope-from-points"],
+      "prompt": "Move each slider on its own. Which slider tilts the line? Which one slides it up and down?",
+      "widget": {
+        "type": "functionPlot",
+        "expr": "m*x + b",
+        "sliders": [
+          { "name": "m", "label": "slope m", "min": -4, "max": 4, "step": 0.5, "initial": 1 },
+          { "name": "b", "label": "intercept b", "min": -5, "max": 5, "step": 0.5, "initial": 0 }
+        ],
+        "xMin": -6, "xMax": 6, "yMin": -6, "yMax": 6,
+        "markers": []
+      },
+      "goal": null
+    },
+    {
+      "kind": "check",
+      "id": "find-intercept",
+      "objectiveId": "intercept-meaning",
+      "item": {
+        "type": "mcq",
+        "stem": "Where does the line **y = 3x − 2** cross the y-axis?",
+        "choices": [
+          { "text": "(0, −2)", "correct": true, "feedback": "Right. At the y-axis x = 0, so y = 3·0 − 2 = −2.", "misconception": null },
+          { "text": "(0, 3)", "correct": false, "feedback": "3 is the slope. It tells you how steep the line is, not where it crosses.", "misconception": "Confuses the slope m with the intercept b" },
+          { "text": "(−2, 0)", "correct": false, "feedback": "The y-axis is where x = 0, so the point must look like (0, something).", "misconception": "Swaps the x and y coordinates of the intercept" },
+          { "text": "(0, 2)", "correct": false, "feedback": "Check the sign. The equation subtracts 2.", "misconception": "Drops the sign of b" }
+        ]
+      },
+      "hint": "On the y-axis, x is always 0. Put x = 0 into the equation."
+    },
+    {
+      "kind": "explain",
+      "id": "rise-over-run",
+      "objectiveIds": ["slope-from-points"],
+      "markdown": "Slope compares how far the line goes **up** to how far it goes **across**:\n\n**m = rise ÷ run = (y₂ − y₁) ÷ (x₂ − x₁)**\n\nPick any two points on the line. The answer is the same for every pair."
+    },
+    {
+      "kind": "workedExample",
+      "id": "slope-example",
+      "objectiveIds": ["slope-from-points"],
+      "problem": "Find the slope of the line through **(1, 2)** and **(4, 8)**.",
+      "steps": [
+        "Label the points: (x₁, y₁) = (1, 2) and (x₂, y₂) = (4, 8).",
+        "Rise: y₂ − y₁ = 8 − 2 = **6**.",
+        "Run: x₂ − x₁ = 4 − 1 = **3**.",
+        "Slope: m = 6 ÷ 3 = **2**. The line goes up 2 for every 1 across."
+      ]
+    },
+    {
+      "kind": "simulation",
+      "id": "make-slope-two",
+      "objectiveIds": ["slope-from-points"],
+      "prompt": "Move the two points until the slope between them is exactly **2**.",
+      "widget": {
+        "type": "formulaExplorer",
+        "sliders": [
+          { "name": "x1", "label": "x₁", "min": -5, "max": 5, "step": 1, "initial": 0 },
+          { "name": "y1", "label": "y₁", "min": -5, "max": 5, "step": 1, "initial": 0 },
+          { "name": "x2", "label": "x₂", "min": -5, "max": 5, "step": 1, "initial": 2 },
+          { "name": "y2", "label": "y₂", "min": -5, "max": 5, "step": 1, "initial": 1 }
+        ],
+        "outputs": [
+          { "label": "rise", "expr": "y2 - y1", "unit": null, "decimals": 0 },
+          { "label": "run", "expr": "x2 - x1", "unit": null, "decimals": 0 },
+          { "label": "slope", "expr": "(y2 - y1) / (x2 - x1)", "unit": null, "decimals": 2 }
+        ]
+      },
+      "goal": {
+        "description": "Slope equals 2",
+        "conditions": [{ "expr": "(y2 - y1) / (x2 - x1)", "target": 2, "tolerance": 0.001 }],
+        "feedbackSuccess": "Slope 2: the rise is twice the run. Many point pairs work. Try finding another."
+      }
+    },
+    {
+      "kind": "check",
+      "id": "slope-numeric",
+      "objectiveId": "slope-from-points",
+      "item": {
+        "type": "numeric",
+        "stem": "What is the slope of the line through **(−2, 5)** and **(3, −5)**?",
+        "answerExpr": "(-5 - 5) / (3 - (-2))",
+        "tolerance": 0.01,
+        "unit": null,
+        "feedbackCorrect": "Yes. Rise −10 over run 5 gives −2. The line goes down as x grows.",
+        "feedbackWrong": "Compute the rise and the run separately. Watch the signs when you subtract a negative number."
+      },
+      "hint": "Rise = −5 − 5. Run = 3 − (−2)."
+    },
+    {
+      "kind": "workedExample",
+      "id": "line-example",
+      "objectiveIds": ["line-through-points"],
+      "problem": "Find the line through **(0, 1)** and **(2, 5)**.",
+      "steps": [
+        "Slope: m = (5 − 1) ÷ (2 − 0) = 4 ÷ 2 = **2**.",
+        "The point (0, 1) is on the y-axis, so **b = 1**.",
+        "The line is **y = 2x + 1**. Check the other point: 2·2 + 1 = 5. ✓"
+      ]
+    },
+    {
+      "kind": "simulation",
+      "id": "hit-two-points",
+      "objectiveIds": ["line-through-points"],
+      "prompt": "Set m and b so the line passes through **(0, −3)** and **(3, 3)**.",
+      "widget": {
+        "type": "functionPlot",
+        "expr": "m*x + b",
+        "sliders": [
+          { "name": "m", "label": "slope m", "min": -4, "max": 4, "step": 0.5, "initial": 1 },
+          { "name": "b", "label": "intercept b", "min": -5, "max": 5, "step": 0.5, "initial": 0 }
+        ],
+        "xMin": -6, "xMax": 6, "yMin": -6, "yMax": 6,
+        "markers": [{ "x": 0, "y": -3, "label": "(0, −3)" }, { "x": 3, "y": 3, "label": "(3, 3)" }]
+      },
+      "goal": {
+        "description": "Line passes through (0, −3) and (3, 3)",
+        "conditions": [
+          { "expr": "b", "target": -3, "tolerance": 0.001 },
+          { "expr": "m*3 + b", "target": 3, "tolerance": 0.001 }
+        ],
+        "feedbackSuccess": "y = 2x − 3. The intercept fixed b, then the slope between the points fixed m."
+      }
+    },
+    {
+      "kind": "check",
+      "id": "order-steps",
+      "objectiveId": "line-through-points",
+      "item": {
+        "type": "order",
+        "stem": "Put the steps for finding a line through two points in order.",
+        "items": [
+          "Compute the slope m = (y₂ − y₁) ÷ (x₂ − x₁)",
+          "Put m and one point into y = mx + b",
+          "Solve for b",
+          "Write the final equation y = mx + b"
+        ],
+        "feedback": "You need m before you can solve for b, and you need both before you write the equation."
+      },
+      "hint": "Which number can you compute from the two points alone?"
+    },
+    {
+      "kind": "recap",
+      "id": "recap",
+      "points": [
+        "y = mx + b: m is the slope, b is where the line crosses the y-axis.",
+        "Slope = rise ÷ run = (y₂ − y₁) ÷ (x₂ − x₁), the same for any two points on the line.",
+        "To find a line from two points: compute m first, then solve for b."
+      ]
+    }
+  ]
+}

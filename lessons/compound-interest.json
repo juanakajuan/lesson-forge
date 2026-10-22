@@ -1,0 +1,361 @@
+{
+  "title": "Compound Interest: Why Your Money Grows Faster Over Time",
+  "audience": "Adults who can do basic arithmetic (including percentages) and have a savings account, but have never learned the compound interest formula.",
+  "objectives": [
+    {
+      "id": "interest-on-interest",
+      "text": "Learner can explain that compound interest pays interest on past interest, not just on the original deposit.",
+      "level": "recall"
+    },
+    {
+      "id": "use-formula",
+      "text": "Learner can compute a balance after several years using A = P × (1 + r)^n.",
+      "level": "apply"
+    },
+    {
+      "id": "time-matters",
+      "text": "Learner can explain why growth speeds up over time and compare savers who start at different times.",
+      "level": "analyze"
+    }
+  ],
+  "blocks": [
+    {
+      "kind": "explain",
+      "id": "what-is-compounding",
+      "objectiveIds": [
+        "interest-on-interest"
+      ],
+      "markdown": "Your bank pays you **interest**, a percentage of your balance.\n\nWith **simple interest**, you only earn on the money you first put in. $1,000 at 10% earns $100 every year, always.\n\nWith **compound interest**, the interest is added to your balance. Next year you earn interest on that bigger balance. So **your interest starts earning interest too.**\n\n- Year 1: 10% of $1,000 = $100. Balance: $1,100.\n- Year 2: 10% of $1,100 = $110. Balance: $1,210.\n\nThe extra $10 in year 2 is interest earned on last year's interest. Most savings accounts work this way. Real accounts often compound monthly or daily. This lesson uses yearly compounding to keep the math simple."
+    },
+    {
+      "kind": "check",
+      "id": "check-year-two",
+      "objectiveId": "interest-on-interest",
+      "item": {
+        "type": "mcq",
+        "stem": "You put **$1,000** in an account that pays **10% a year, compounded**. After year 1 your balance is $1,100. How much interest do you earn **during year 2**?",
+        "choices": [
+          {
+            "text": "$110",
+            "correct": true,
+            "feedback": "Right. The bank pays 10% of your current balance, $1,100. That's $110.",
+            "misconception": null
+          },
+          {
+            "text": "$100",
+            "correct": false,
+            "feedback": "That's simple interest, where you only earn on the original $1,000. With compounding, last year's $100 is now part of your balance and earns interest too.",
+            "misconception": "Thinks interest is always calculated on the original deposit (simple interest)."
+          },
+          {
+            "text": "$210",
+            "correct": false,
+            "feedback": "$210 is the total interest over both years ($100 + $110). The question asks only about year 2.",
+            "misconception": "Mixes up one year's interest with the total interest so far."
+          },
+          {
+            "text": "$1,210",
+            "correct": false,
+            "feedback": "That's your balance after year 2, not the interest earned during year 2. Subtract the $1,100 you started the year with.",
+            "misconception": "Confuses the end-of-year balance with the interest earned that year."
+          }
+        ]
+      },
+      "hint": null
+    },
+    {
+      "kind": "explain",
+      "id": "the-formula",
+      "objectiveIds": [
+        "use-formula"
+      ],
+      "markdown": "Each year you multiply your balance by **(1 + r)**, where r is the rate as a decimal. At 10%, that's × 1.10.\n\nOver **n** years you multiply n times. That gives the formula:\n\n**A = P × (1 + r)^n**\n\n- **P** = what you put in (the principal)\n- **r** = yearly rate as a decimal (5% → 0.05)\n- **n** = number of years\n- **A** = what you end up with\n\nThe `^n` means \"multiply (1 + r) by itself n times\", e.g. 1.10^3 = 1.10 × 1.10 × 1.10. A calculator's `^` or `xʸ` key does this for you."
+    },
+    {
+      "kind": "workedExample",
+      "id": "worked-formula",
+      "objectiveIds": [
+        "use-formula"
+      ],
+      "problem": "You deposit **$1,000** at **5%** a year, compounded yearly. What is the balance after **3 years**?",
+      "steps": [
+        "Write down the pieces: P = 1000, r = 5% = **0.05**, n = **3**.",
+        "Add 1 to the rate: 1 + 0.05 = **1.05**.",
+        "Raise it to the power n: 1.05^3 = 1.05 × 1.05 × 1.05 = **1.157625**.",
+        "Multiply by the principal: 1000 × 1.157625 = **$1,157.63**.",
+        "Sanity check: simple interest would give $1,150 ($50 × 3). Compounding gives $7.63 more. That's the interest on your interest."
+      ]
+    },
+    {
+      "kind": "check",
+      "id": "check-formula-1",
+      "objectiveId": "use-formula",
+      "item": {
+        "type": "numeric",
+        "stem": "You deposit **$2,000** at **4%** a year, compounded yearly. What is the balance after **2 years**? (Round to the nearest cent.)",
+        "answerExpr": "2000*(1+0.04)^2",
+        "tolerance": 0.01,
+        "unit": "$",
+        "feedbackCorrect": "Correct: 2000 × 1.04² = 2000 × 1.0816 = $2,163.20.",
+        "feedbackWrong": "Got **2,160**? That's simple interest (2000 × 1.08). Got **163.20**? That's only the interest; include the $2,000. Otherwise: square 1.04, then multiply by 2000."
+      },
+      "hint": "P = 2000, r = 0.04 (not 4), n = 2. The 2 is an exponent: 1.04^2 means 1.04 × 1.04, not 1.04 × 2."
+    },
+    {
+      "kind": "check",
+      "id": "check-formula-2",
+      "objectiveId": "use-formula",
+      "item": {
+        "type": "numeric",
+        "stem": "You leave **$5,000** in an account at **6%** a year for **10 years**, compounded yearly. What is the final balance? (Round to the nearest dollar.)",
+        "answerExpr": "5000*(1+0.06)^10",
+        "tolerance": 1,
+        "unit": "$",
+        "feedbackCorrect": "Right, about $8,954. Simple interest would give only $8,000. Compounding added about $954 more.",
+        "feedbackWrong": "Got **8,000**? That's simple interest (0.06 × 10 = 0.6). Got **3,954**? That's the interest only; add back the $5,000. Otherwise, raise 1.06 to the 10th power, then multiply by 5,000."
+      },
+      "hint": "Use A = P × (1 + r)^n with P = 5000, r = 0.06, n = 10. Use your calculator's ^ key for 1.06^10."
+    },
+    {
+      "kind": "workedExample",
+      "id": "worked-early-start",
+      "objectiveIds": [
+        "time-matters"
+      ],
+      "problem": "Both earn **6%** a year. **Ana** invests $1,000 at age 25. **Ben** invests $1,000 at age 35. Neither adds more. How much does each have at 65?",
+      "steps": [
+        "Ana's money grows for **40 years**. Ben's grows for **30 years**.",
+        "Ana: 1000 × 1.06^40 ≈ **$10,286**.",
+        "Ben: 1000 × 1.06^30 ≈ **$5,743**.",
+        "Ben started just 10 years later, yet he ends with only a little over **half** of what Ana has.",
+        "Same rate, same deposit. The only difference is how long the money had to compound. Why do 10 years matter that much? The next activity shows you."
+      ]
+    },
+    {
+      "kind": "simulation",
+      "id": "sim-curve-explore",
+      "objectiveIds": [
+        "time-matters"
+      ],
+      "prompt": "The curve shows **$1,000** growing over the years (x-axis) at the rate you choose.\n\nSet the rate to **8%**. The curve will pass through the two markers. Compare how much it rises from **year 0 to 5** with how much it rises from **year 30 to 35**. Does each 5 years add the same amount?",
+      "widget": {
+        "type": "functionPlot",
+        "expr": "1000*(1+r/100)^x",
+        "sliders": [
+          {
+            "name": "r",
+            "label": "Yearly interest rate (%)",
+            "min": 0,
+            "max": 12,
+            "step": 0.5,
+            "initial": 4
+          }
+        ],
+        "xMin": 0,
+        "xMax": 40,
+        "yMin": 0,
+        "yMax": 20000,
+        "markers": [
+          {
+            "x": 5,
+            "y": 1469.33,
+            "label": "Year 5: $1,469"
+          },
+          {
+            "x": 35,
+            "y": 14785.34,
+            "label": "Year 35: $14,785"
+          }
+        ]
+      },
+      "goal": null
+    },
+    {
+      "kind": "explain",
+      "id": "why-it-speeds-up",
+      "objectiveIds": [
+        "time-matters"
+      ],
+      "markdown": "You just saw it. The same 8% added about 10 times more dollars late in the curve than early on.\n\nThat's because each year's interest is a percentage of a balance that keeps growing. So the money doesn't grow in a straight line. It **curves upward**, and it gets steeper the longer you wait.\n\nThat's why **time is often the most powerful ingredient**. The early years feel slow. The late years do most of the work. That's also why Ben fell so far behind Ana."
+    },
+    {
+      "kind": "explain",
+      "id": "rule-of-72",
+      "objectiveIds": [
+        "time-matters"
+      ],
+      "markdown": "A handy shortcut is the **Rule of 72**. Divide 72 by the rate (in %) to estimate how many years it takes your money to double.\n\nAt 6%, 72 ÷ 6 = about **12 years** to double. At 8%, 72 ÷ 8 = about **9 years**.\n\nAfter it doubles once, it doubles again in the same number of years. That's why waiting longer pays off so much."
+    },
+    {
+      "kind": "simulation",
+      "id": "sim-doubling",
+      "objectiveIds": [
+        "time-matters"
+      ],
+      "prompt": "Same curve: **$1,000** growing at the rate you choose.\n\nUse the Rule of 72 to guess a rate that makes $1,000 **double to about $2,000 in 10 years**. Then set it and see whether the curve hits the marker.",
+      "widget": {
+        "type": "functionPlot",
+        "expr": "1000*(1+r/100)^x",
+        "sliders": [
+          {
+            "name": "r",
+            "label": "Yearly interest rate (%)",
+            "min": 0,
+            "max": 12,
+            "step": 0.5,
+            "initial": 2
+          }
+        ],
+        "xMin": 0,
+        "xMax": 40,
+        "yMin": 0,
+        "yMax": 20000,
+        "markers": [
+          {
+            "x": 10,
+            "y": 2000,
+            "label": "$2,000 at year 10"
+          }
+        ]
+      },
+      "goal": {
+        "description": "Set the rate so the balance after 10 years is about $2,000 (double the start).",
+        "conditions": [
+          {
+            "expr": "(1+r/100)^10",
+            "target": 2,
+            "tolerance": 0.05
+          }
+        ],
+        "feedbackSuccess": "About 7% doubles your money in 10 years, just as the Rule of 72 predicts (72 ÷ 7 ≈ 10). Look at year 40: the money has doubled about 4 times, to roughly $15,000."
+      }
+    },
+    {
+      "kind": "check",
+      "id": "check-which-decade",
+      "objectiveId": "time-matters",
+      "item": {
+        "type": "mcq",
+        "stem": "You invest **$1,000 at 7%** and add nothing more. Which decade adds more dollars to your balance?",
+        "choices": [
+          {
+            "text": "Years 31–40",
+            "correct": true,
+            "feedback": "Right. Years 1–10 add about $970 (to about $1,970). Years 31–40 add about $7,360 (from about $7,610 to about $14,970). The same 7% is applied to a much bigger balance.",
+            "misconception": null
+          },
+          {
+            "text": "Both add the same, because the rate is the same",
+            "correct": false,
+            "feedback": "The rate is the same, but it's applied to a growing balance. 7% of $7,600 is far more than 7% of $1,000. So the dollars added each decade keep growing.",
+            "misconception": "Thinks compound growth is linear: same rate means the same dollar amount each year."
+          },
+          {
+            "text": "Years 1–10, because that's when the money starts growing",
+            "correct": false,
+            "feedback": "Starting early matters because it gives the money more time, but the early years themselves add the least. Each decade adds more than the one before.",
+            "misconception": "Confuses 'starting early is important' with 'the early years add the most money'."
+          },
+          {
+            "text": "Both add the same, because the balance about doubles in each decade",
+            "correct": false,
+            "feedback": "Both decades do double the balance. But doubling $1,000 adds about $1,000, while doubling $7,600 adds about $7,600. The same doubling means far more dollars later.",
+            "misconception": "Mixes up the same growth factor (doubling) with the same number of dollars added."
+          }
+        ]
+      },
+      "hint": "Look at the 7% curve you just made. How much does it rise between years 0 and 10, and between years 30 and 40?"
+    },
+    {
+      "kind": "simulation",
+      "id": "sim-rule-72-test",
+      "objectiveIds": [
+        "time-matters"
+      ],
+      "prompt": "Use the Rule of 72 to find the rate that doubles $1,000 in **8 years**, then check it on the curve. Does it pass close to the marker?",
+      "widget": {
+        "type": "functionPlot",
+        "expr": "1000*(1+r/100)^x",
+        "sliders": [
+          {
+            "name": "r",
+            "label": "Yearly interest rate (%)",
+            "min": 0,
+            "max": 12,
+            "step": 0.5,
+            "initial": 2
+          }
+        ],
+        "xMin": 0,
+        "xMax": 40,
+        "yMin": 0,
+        "yMax": 20000,
+        "markers": [
+          {
+            "x": 8,
+            "y": 2000,
+            "label": "$2,000 at year 8"
+          }
+        ]
+      },
+      "goal": {
+        "description": "Set the rate so $1,000 reaches about $2,000 at year 8.",
+        "conditions": [
+          {
+            "expr": "(1+r/100)^8",
+            "target": 2,
+            "tolerance": 0.05
+          }
+        ],
+        "feedbackSuccess": "72 ÷ 8 = 9, so 9% it is. At 9%, $1,000 grows to about $1,993 in 8 years, very close to double. The curve then doubles again by year 16 (about $4,000) and again by year 24 (about $8,000)."
+      }
+    },
+    {
+      "kind": "check",
+      "id": "check-who-wins",
+      "objectiveId": "time-matters",
+      "item": {
+        "type": "mcq",
+        "stem": "Both earn **7%** a year until age 65. **Ana** invests **$1,000 at age 25**. **Ben** invests **$1,500 at age 35**. Who has more at 65?",
+        "choices": [
+          {
+            "text": "Ana",
+            "correct": true,
+            "feedback": "Yes. Ana's money doubles about 4 times (≈ $14,970). Ben's doubles about 3 times (≈ $11,420). Ten extra years of compounding beat Ben's extra $500.",
+            "misconception": null
+          },
+          {
+            "text": "Ben, because he put in more money",
+            "correct": false,
+            "feedback": "A bigger deposit helps, but Ana's extra 10 years give her one more doubling. That's worth far more than Ben's extra $500.",
+            "misconception": "Thinks the size of the deposit matters more than how long it compounds."
+          },
+          {
+            "text": "About the same, since the rate is the same",
+            "correct": false,
+            "feedback": "Same rate doesn't mean the same result. The number of years is in the exponent, so 10 more years makes a big difference.",
+            "misconception": "Thinks the rate alone decides the outcome and ignores time."
+          },
+          {
+            "text": "Ben, because each year adds about the same amount, so Ana's extra 10 years add only about $700",
+            "correct": false,
+            "feedback": "That's straight-line (simple interest) thinking. With compounding, each year adds more than the last, and the final years add the most. Ana's extra 10 years give her a whole extra doubling, not just $700.",
+            "misconception": "Thinks compound growth is linear, the same dollar amount each year."
+          }
+        ]
+      },
+      "hint": "At 7%, money roughly doubles every 10 years. Count the doublings for each person."
+    },
+    {
+      "kind": "recap",
+      "id": "recap",
+      "points": [
+        "Compound interest pays interest on your interest, not just on what you put in.",
+        "Formula: A = P × (1 + r)^n. Write the rate as a decimal and raise (1 + r) to the number of years.",
+        "Each year's interest is bigger than the last, so growth curves upward and speeds up over time. At 8%, years 30–35 added 10 times more than years 0–5.",
+        "Rule of 72: 72 ÷ rate ≈ years to double your money. You checked it yourself at 7% and 9%.",
+        "Starting earlier often beats putting in more later, because time is in the exponent."
+      ]
+    }
+  ]
+}
