@@ -5,6 +5,7 @@
   "scripts": {
     "typecheck": "tsc",
     "test": "node --test test/*.test.ts",
+    "verify:expr": "node --test verify/expr-properties.test.ts",
     "lf": "node src/cli.ts"
   },
   "type": "module",
