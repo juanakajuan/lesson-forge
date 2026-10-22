@@ -17,13 +17,15 @@ Run every command from the repository root.
   lf-verify.mjs render <lesson.json>
   lf-verify.mjs site <dir...>
   lf-verify.mjs serve [--page <file.html>]
-  lf-verify.mjs browser click --role <role> --name <name>
-  lf-verify.mjs browser fill --role textbox --name <name> --value <text>
+  lf-verify.mjs browser click --role <role> --name <name> [--last]
+  lf-verify.mjs browser fill --role <textbox|slider> --name <name> --value <text> [--last]
   lf-verify.mjs browser snapshot --aria --path <file>
   lf-verify.mjs browser screenshot --path <file>
+  lf-verify.mjs browser reload
   lf-verify.mjs cleanup
 
-doctor and browser talk to the instance this run started. cleanup deletes
+--last picks the last match in page order when an earlier block has the same
+name. doctor and browser talk to the instance this run started. cleanup deletes
 LF_VERIFY_HOME only. It does not delete verify-evidence/.
 `;
 
@@ -562,6 +564,25 @@ async function browser(args) {
   }
   const { flags, positionals } = parseFlags(args);
   const action = positionals[0];
+  if (action === "reload") {
+    const title = await withPage(state, async (cdp) => {
+      await evaluate(cdp, "window.__lfVerifyStale = true");
+      await cdp.send("Page.reload", { ignoreCache: true });
+      const started = Date.now();
+      while (Date.now() - started < 15000) {
+        const stale = await evaluate(cdp, "window.__lfVerifyStale === true").catch(() => true);
+        if (stale === false) return waitForTitle(cdp);
+        await sleep(50);
+      }
+      throw new Error("the page did not reload");
+    });
+    if (title !== state.title) {
+      fail(`Page title is "${title}" after reload. This run opened "${state.title}".`);
+      return;
+    }
+    console.log(`reloaded ${state.url}`);
+    return;
+  }
   if (action === "snapshot") {
     if (flags.get("aria") !== "true" || !flags.get("path")) {
       fail("Use browser snapshot --aria --path <file>.");
@@ -595,11 +616,12 @@ async function browser(args) {
     }
     const value = flags.get("value");
     if (action === "fill" && value === undefined) {
-      fail("Use browser fill --role textbox --name <name> --value <text>.");
+      fail("Use browser fill --role <textbox|slider> --name <name> --value <text>.");
       return;
     }
+    const last = flags.get("last") === "true";
     const result = await withPage(state, (cdp) =>
-      evaluate(cdp, action === "click" ? clickExpression(role, name) : fillExpression(role, name, value)),
+      evaluate(cdp, action === "click" ? clickExpression(role, name, last) : fillExpression(role, name, value, last)),
     );
     if (!result?.ok) {
       fail(result?.message ?? "the page action failed");
@@ -621,6 +643,10 @@ for (const el of document.querySelectorAll("h1,h2,h3,button,a,input,[role=status
   if (!name) continue;
   lines.push(role + ' "' + name.replaceAll('\\\\','\\\\\\\\').replaceAll('"','\\\\"') + '"');
 }
+for (const row of document.querySelectorAll(".mastery-row")) {
+  const [badge, text] = [...row.children].map((el) => norm(el.textContent));
+  lines.push('mastery "' + badge + ': ' + String(text ?? "").replaceAll('"','\\"') + '"');
+}
 for (const block of document.querySelectorAll(".block")) {
   lines.push('block "' + norm(block.innerText).slice(0, 240).replaceAll('"','\\\\"') + '"');
 }
@@ -628,12 +654,13 @@ return lines.join("\\n");
 })()`;
 }
 
-function clickExpression(role, name) {
+function clickExpression(role, name, last) {
   return `(() => {
 ${FINDER}
 const role=${JSON.stringify(role)};
 const name=${JSON.stringify(name)};
-const hits=candidates(role).filter((el)=>accName(el)===name);
+const matches=candidates(role).filter((el)=>accName(el)===name);
+const hits=${last ? "matches.slice(-1)" : "matches"};
 if (hits.length!==1) {
   const found=candidates(role).map((el)=>accName(el)).filter(Boolean);
   return {ok:false, message:"expected one "+role+" named "+JSON.stringify(name)+". found: "+found.join(" | ")};
@@ -646,13 +673,14 @@ return {ok:true, message:"clicked "+role+" "+JSON.stringify(name)};
 })()`;
 }
 
-function fillExpression(role, name, value) {
+function fillExpression(role, name, value, last) {
   return `(() => {
 ${FINDER}
 const role=${JSON.stringify(role)};
 const name=${JSON.stringify(name)};
 const value=${JSON.stringify(value)};
-const hits=candidates(role).filter((el)=>accName(el)===name);
+const matches=candidates(role).filter((el)=>accName(el)===name);
+const hits=${last ? "matches.slice(-1)" : "matches"};
 if (hits.length!==1) {
   const found=candidates(role).map((el)=>accName(el)).filter(Boolean);
   return {ok:false, message:"expected one "+role+" named "+JSON.stringify(name)+". found: "+found.join(" | ")};

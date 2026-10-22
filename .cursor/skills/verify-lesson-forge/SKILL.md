@@ -64,10 +64,12 @@ Stable handles in the rendered lesson:
 - `button` — `Continue` on an explanation, on a simulation with no goal, and after the last worked-example step
 - `button` — `Next step (N/M)` while a worked example still has hidden steps
 - `button` — `Finish` on the recap
-- `button` — `Check`, then `Check again`, `Hint`, and `Show answer` on a check
+- `button` — `Check`, then `Check again`, `Hint`, and `Show answer` on a check and on a simulation with a goal
 - `radio` — the choice text, including its punctuation
 - `textbox` — `Your answer` on a numeric check
-- `slider` — the slider label from the lesson (`slope m`, `intercept b` on the first simulation of `examples/slope-intercept.json`)
+- `slider` — the slider label from the lesson (`slope m`, `intercept b` on the first simulation of `examples/slope-intercept.json`, and `x₁`, `y₁`, `x₂`, `y₂` on the goal simulation `make-slope-two`)
+- `status` — `Goal:` and the goal description on a simulation with a goal, and `Move a slider first.` when Check is used before a slider moves
+- `mastery` — one snapshot line for each row of the end summary, as `mastery "Solid: <objective text>"`. The badge is `Solid`, `Review`, or `Not assessed`.
 - `button` — `Move "Compute the slope m = (y₂ − y₁) ÷ (x₂ − x₁)" up` and the matching `down` button on the ordering check in `examples/slope-intercept.json`. Other items use the same `Move "` + item text + `" up` name.
 - `status` — the feedback text after Check, or `Answer first.` when Check is used with an empty answer
 
@@ -79,9 +81,15 @@ node .cursor/skills/verify-lesson-forge/lf-verify.mjs render examples/slope-inte
 node .cursor/skills/verify-lesson-forge/lf-verify.mjs site examples
 node .cursor/skills/verify-lesson-forge/lf-verify.mjs browser click --role button --name "Continue"
 node .cursor/skills/verify-lesson-forge/lf-verify.mjs browser fill --role textbox --name "Your answer" --value "-2"
+node .cursor/skills/verify-lesson-forge/lf-verify.mjs browser fill --role slider --name "slope m" --value "2" --last
+node .cursor/skills/verify-lesson-forge/lf-verify.mjs browser reload
 node .cursor/skills/verify-lesson-forge/lf-verify.mjs browser snapshot --aria --path verify-evidence/continue-explanation/after.aria.txt
 node .cursor/skills/verify-lesson-forge/lf-verify.mjs browser screenshot --path verify-evidence/continue-explanation/after.png
 ```
+
+`fill` on a slider sets the value and sends the `input` event, as a drag does. `--last` selects the last match in page order. Use it when an earlier block has a control with the same role and name. Without `--last`, two matches are an error.
+
+`reload` loads the page again with no learner state and waits for the lesson heading. Use it to start a new scenario on the same instance.
 
 `check` with no file argument is the usage path. Exit code `2` and the usage text on stderr.
 
