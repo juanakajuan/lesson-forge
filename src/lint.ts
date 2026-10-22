@@ -1,5 +1,6 @@
-import { evaluate, freeVariables, parseExpr, type Env, type Expr } from "./expr.ts";
-import { assessedObjectives, isAssessment, type Block, type Goal, type Lesson, type Slider, type Widget } from "./schema.ts";
+import { evaluate, freeVariables, parseExpr, type Expr } from "./expr.ts";
+import { compileGoal, goalMet, gridSize, MAX_GRID_POINTS, nearestSolution } from "./goal.ts";
+import { assessment, type Block, type Lesson, type Widget } from "./schema.ts";
 
 export type Severity = "error" | "warning";
 
@@ -20,7 +21,6 @@ export type Rule = {
 
 const MAX_EXPLAIN_WORDS = 150;
 const MAX_PASSIVE_RUN = 2;
-const MAX_GRID_POINTS = 20_000;
 
 const PASSIVE_KINDS: ReadonlySet<Block["kind"]> = new Set(["explain", "workedExample", "recap"]);
 
@@ -47,45 +47,6 @@ function widgetVariables(widget: Widget): Set<string> {
 
 function widgetExpressions(widget: Widget): string[] {
   return widget.type === "functionPlot" ? [widget.expr] : widget.outputs.map((o) => o.expr);
-}
-
-function sliderValues(slider: Slider): number[] {
-  const count = Math.floor((slider.max - slider.min) / slider.step + 1e-9) + 1;
-  return Array.from({ length: count }, (_, i) => slider.min + i * slider.step);
-}
-
-function goalSatisfied(conditions: readonly { expr: Expr; target: number; tolerance: number }[], env: Env): boolean {
-  return conditions.every((c) => Math.abs(evaluate(c.expr, env) - c.target) <= c.tolerance);
-}
-
-/** Search the slider grid. Returns whether the goal is reachable, or null when the grid is too large to search. */
-function goalReachable(sliders: readonly Slider[], conditions: readonly { expr: Expr; target: number; tolerance: number }[]): boolean | null {
-  const axes = sliders.map(sliderValues);
-  const total = axes.reduce((n, a) => n * a.length, 1);
-  if (total > MAX_GRID_POINTS) return null;
-  const env: Record<string, number> = {};
-  const search = (depth: number): boolean => {
-    const axis = axes[depth];
-    const slider = sliders[depth];
-    if (axis === undefined || slider === undefined) return goalSatisfied(conditions, env);
-    for (const v of axis) {
-      env[slider.name] = v;
-      if (search(depth + 1)) return true;
-    }
-    return false;
-  };
-  return search(0);
-}
-
-function compileGoal(goal: Goal, sliders: readonly Slider[]): { conditions: { expr: Expr; target: number; tolerance: number }[] } | { error: string } {
-  const allowed = new Set(sliders.map((s) => s.name));
-  const conditions = [];
-  for (const c of goal.conditions) {
-    const compiled = compile(c.expr, allowed);
-    if ("error" in compiled) return compiled;
-    conditions.push({ expr: compiled.expr, target: c.target, tolerance: c.tolerance });
-  }
-  return { conditions };
 }
 
 export const RULES: readonly Rule[] = [
@@ -122,7 +83,7 @@ export const RULES: readonly Rule[] = [
     severity: "error",
     guidance: "Every objective is assessed by at least one check or goal-based simulation.",
     *check(lesson) {
-      const assessed = new Set(lesson.blocks.flatMap(assessedObjectives));
+      const assessed = new Set(lesson.blocks.flatMap((block) => assessment(block)?.objectiveIds ?? []));
       for (const o of lesson.objectives) {
         if (!assessed.has(o.id)) {
           yield { blockId: null, message: `Objective "${o.id}" is never assessed. Add a check block or a simulation with a goal for it.` };
@@ -176,7 +137,7 @@ export const RULES: readonly Rule[] = [
     *check(lesson) {
       for (const o of lesson.objectives) {
         if (o.level === "recall") continue;
-        const firstAssessment = lesson.blocks.findIndex((b) => assessedObjectives(b).includes(o.id));
+        const firstAssessment = lesson.blocks.findIndex((b) => assessment(b)?.objectiveIds.includes(o.id) === true);
         if (firstAssessment === -1) continue;
         const hasExample = lesson.blocks
           .slice(0, firstAssessment)
@@ -290,17 +251,25 @@ export const RULES: readonly Rule[] = [
       for (const block of lesson.blocks) {
         if (block.kind !== "simulation" || block.goal === null) continue;
         const compiled = compileGoal(block.goal, block.widget.sliders);
-        if ("error" in compiled) {
+        if (!compiled.ok) {
           yield { blockId: block.id, message: `Goal ${compiled.error}.` };
           continue;
         }
         const initial = Object.fromEntries(block.widget.sliders.map((s) => [s.name, s.initial]));
-        if (goalSatisfied(compiled.conditions, initial)) {
+        if (goalMet(compiled.goal, initial)) {
           yield { blockId: block.id, message: "Goal is already met at the initial slider values. Change the initial values or the target." };
         }
-        const reachable = goalReachable(block.widget.sliders, compiled.conditions);
-        if (reachable === false) {
-          yield { blockId: block.id, message: "No slider position on the step grid meets the goal. Adjust the target, tolerance, or slider ranges/steps." };
+        const points = gridSize(compiled.goal);
+        if (points > MAX_GRID_POINTS) {
+          yield {
+            blockId: block.id,
+            message: `Goal grid has ${points} slider positions (limit ${MAX_GRID_POINTS}). The answer reveal searches it. Increase slider steps.`,
+          };
+        } else {
+          const found = nearestSolution(compiled.goal, initial);
+          if (found.kind === "absent") {
+            yield { blockId: block.id, message: "No slider position on the step grid meets the goal. Adjust the target, tolerance, or slider ranges/steps." };
+          }
         }
       }
     },
@@ -339,18 +308,20 @@ export const RULES: readonly Rule[] = [
     severity: "warning",
     guidance: "The learner meets the first interaction within the first three blocks.",
     *check(lesson) {
-      const first = lesson.blocks.findIndex((b) => b.kind === "simulation" || isAssessment(b));
+      const first = lesson.blocks.findIndex((b) => b.kind === "simulation" || assessment(b) !== null);
       if (first > 2) yield { blockId: lesson.blocks[first]?.id ?? null, message: "The first interaction comes late. Move an interaction earlier." };
     },
   },
   {
-    id: "check-has-hint",
-    severity: "warning",
-    guidance: "Checks for apply/analyze objectives carry a hint.",
+    id: "assessment-has-hint",
+    severity: "error",
+    guidance: "Every check or goal for an apply or analyze objective carries a hint.",
     *check(lesson) {
       const levels = new Map(lesson.objectives.map((o) => [o.id, o.level]));
       for (const block of lesson.blocks) {
-        if (block.kind === "check" && block.hint === null && levels.get(block.objectiveId) !== "recall") {
+        const assessed = assessment(block);
+        if (assessed === null || assessed.hint !== null) continue;
+        if (assessed.objectiveIds.some((id) => levels.get(id) !== "recall")) {
           yield { blockId: block.id, message: "Has no hint. Add a hint that points at the first step." };
         }
       }

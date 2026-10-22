@@ -86,7 +86,8 @@
       "goal": {
         "description": "Slope equals 2",
         "conditions": [{ "expr": "(y2 - y1) / (x2 - x1)", "target": 2, "tolerance": 0.001 }],
-        "feedbackSuccess": "Slope 2: the rise is twice the run. Many point pairs work. Try finding another."
+        "feedbackSuccess": "Slope 2: the rise is twice the run. Many point pairs work. Try finding another.",
+        "hint": "Slope is rise ÷ run. Pick a run first, then make the rise twice as big."
       }
     },
     {
@@ -136,7 +137,8 @@
           { "expr": "b", "target": -3, "tolerance": 0.001 },
           { "expr": "m*3 + b", "target": 3, "tolerance": 0.001 }
         ],
-        "feedbackSuccess": "y = 2x − 3. The intercept fixed b, then the slope between the points fixed m."
+        "feedbackSuccess": "y = 2x − 3. The intercept fixed b, then the slope between the points fixed m.",
+        "hint": "At x = 0 the line is at height b. Set b from the first point, then find m from the rise and run between the points."
       }
     },
     {
