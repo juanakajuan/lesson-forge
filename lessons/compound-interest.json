@@ -227,7 +227,8 @@
             "tolerance": 0.05
           }
         ],
-        "feedbackSuccess": "About 7% doubles your money in 10 years, just as the Rule of 72 predicts (72 ÷ 7 ≈ 10). Look at year 40: the money has doubled about 4 times, to roughly $15,000."
+        "feedbackSuccess": "About 7% doubles your money in 10 years, just as the Rule of 72 predicts (72 ÷ 7 ≈ 10). Look at year 40: the money has doubled about 4 times, to roughly $15,000.",
+        "hint": "Rule of 72: divide 72 by the number of years to get the rate in percent."
       }
     },
     {
@@ -307,7 +308,8 @@
             "tolerance": 0.05
           }
         ],
-        "feedbackSuccess": "72 ÷ 8 = 9, so 9% it is. At 9%, $1,000 grows to about $1,993 in 8 years, very close to double. The curve then doubles again by year 16 (about $4,000) and again by year 24 (about $8,000)."
+        "feedbackSuccess": "72 ÷ 8 = 9, so 9% it is. At 9%, $1,000 grows to about $1,993 in 8 years, very close to double. The curve then doubles again by year 16 (about $4,000) and again by year 24 (about $8,000).",
+        "hint": "Rule of 72: rate × years ≈ 72. Here the years are 8."
       }
     },
     {

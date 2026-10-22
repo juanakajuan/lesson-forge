@@ -42,6 +42,33 @@ test("the shipped example is lint-clean", () => {
   assert.deepEqual(lint(example), []);
 });
 
+test("both shipped lessons lint clean", () => {
+  const compound: Lesson = LessonSchema.parse(JSON.parse(readFileSync(new URL("../lessons/compound-interest.json", import.meta.url), "utf8")));
+  assert.deepEqual(lint(example), []);
+  assert.deepEqual(lint(compound), []);
+});
+
+test("an apply goal with a null hint fails assessment-has-hint", () => {
+  const lesson = mutate((draft) => {
+    const goal = block(draft, "make-slope-two", "simulation").goal;
+    if (goal) goal.hint = null;
+  });
+  const findings = lint(lesson).filter((f) => f.rule === "assessment-has-hint");
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0]?.severity, "error");
+  assert.equal(findings[0]?.blockId, "make-slope-two");
+  assert.match(findings[0]?.message ?? "", /Has no hint/);
+});
+
+test("a goal hint rejects an empty string", () => {
+  assert.throws(() =>
+    mutate((draft) => {
+      const goal = block(draft, "make-slope-two", "simulation").goal;
+      if (goal) goal.hint = "";
+    }),
+  );
+});
+
 const cases: [rule: string, edit: (l: Lesson) => void][] = [
   ["unique-ids", (l) => { block(l, "rise-over-run", "explain").id = "intro"; }],
   ["objective-refs-exist", (l) => { block(l, "find-intercept", "check").objectiveId = "nope"; }],

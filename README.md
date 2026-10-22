@@ -65,7 +65,8 @@ npm test && npm run typecheck
 - An `apply` or `analyze` objective gets a worked example before its first assessment.
 - A multiple-choice item has exactly one correct choice. Each wrong choice names its misconception.
 - A numeric answer is an expression that evaluates to a finite number.
-- A simulation goal is reachable on the slider grid and is not met at the start.
+- A simulation goal is reachable on the slider grid and is not met at the start. The learner grades it with Check. Show answer appears after two misses.
+- An apply or analyze check or goal has a hint.
 - The lesson ends with a recap.
 
 ## Add a rule

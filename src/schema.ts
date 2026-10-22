@@ -10,6 +10,10 @@ const Id = z
 
 const Markdown = z.string().min(1).describe("Markdown. Use **bold** and `code`; no raw HTML.");
 
+export const HintSchema = Markdown.nullable().describe(
+  "Shown on request after a missed attempt. Point at the first reasoning step. Do not give the answer or slider values. null only for recall objectives.",
+);
+
 const Identifier = z
   .string()
   .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
@@ -114,6 +118,7 @@ const GoalSchema = z.object({
     )
     .min(1),
   feedbackSuccess: z.string().min(1),
+  hint: HintSchema,
 });
 
 const ExplainBlock = z.object({
@@ -136,7 +141,7 @@ const CheckBlock = z.object({
   id: Id,
   objectiveId: Id,
   item: CheckItemSchema,
-  hint: z.string().nullable(),
+  hint: HintSchema,
 });
 
 const SimulationBlock = z.object({
@@ -179,12 +184,13 @@ export type Widget = z.infer<typeof WidgetSchema>;
 export type Slider = Widget["sliders"][number];
 export type Goal = NonNullable<BlockOf<"simulation">["goal"]>;
 
-export function isAssessment(block: Block): block is BlockOf<"check"> | (BlockOf<"simulation"> & { goal: Goal }) {
-  return block.kind === "check" || (block.kind === "simulation" && block.goal !== null);
-}
+export type Assessment = {
+  readonly objectiveIds: readonly string[];
+  readonly hint: string | null;
+};
 
-export function assessedObjectives(block: Block): readonly string[] {
-  if (block.kind === "check") return [block.objectiveId];
-  if (block.kind === "simulation" && block.goal !== null) return block.objectiveIds;
-  return [];
+export function assessment(block: Block): Assessment | null {
+  if (block.kind === "check") return { objectiveIds: [block.objectiveId], hint: block.hint };
+  if (block.kind === "simulation" && block.goal !== null) return { objectiveIds: block.objectiveIds, hint: block.goal.hint };
+  return null;
 }

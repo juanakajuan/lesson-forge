@@ -1,14 +1,14 @@
 import { evaluate, parseExpr } from "../expr.ts";
-import type { Block, BlockOf, CheckItem } from "../schema.ts";
+import { compileGoal, goalMet, nearestSolution, type CompiledGoal, type SliderValues } from "../goal.ts";
+import { assessment, type Block, type BlockOf, type CheckItem, type Goal } from "../schema.ts";
+import { offers, outcome, start, step, type Attempt, type AttemptEvent } from "./attempt.ts";
 import { button, feedback, h, markdown } from "./dom.ts";
-import { goalChecker, mountWidget } from "./widgets.ts";
+import { mountWidget, type MountedWidget } from "./widgets.ts";
 
 /** firstTry is null for blocks that do not assess anything. */
 export type Outcome = { readonly objectiveIds: readonly string[]; readonly firstTry: boolean | null };
 
 export type BlockContext = { readonly complete: (outcome: Outcome) => void };
-
-const ATTEMPTS_BEFORE_REVEAL = 2;
 
 function continueButton(ctx: BlockContext, label = "Continue"): HTMLButtonElement {
   const btn = button(label, () => {
@@ -49,26 +49,31 @@ function recap(block: BlockOf<"recap">, ctx: BlockContext): HTMLElement {
 
 function simulation(block: BlockOf<"simulation">, ctx: BlockContext): HTMLElement {
   const widget = mountWidget(block.widget);
-  const status = h("div", { class: "sim-status" });
-  const section = h("section", { class: "block block-sim" }, markdown(block.prompt), widget.el, status);
   const { goal } = block;
-  if (goal === null) {
-    section.append(continueButton(ctx));
-    return section;
-  }
-  status.append(feedback("info", markdown(`**Goal:** ${goal.description}`, true)));
-  const met = goalChecker(goal);
-  let done = false;
-  widget.onChange((env) => {
-    if (done || !met(env)) return;
-    done = true;
-    status.replaceChildren(feedback("correct", markdown(goal.feedbackSuccess, true)));
-    ctx.complete({ objectiveIds: block.objectiveIds, firstTry: true });
-  });
-  return section;
+  if (goal === null) return h("section", { class: "block block-sim" }, markdown(block.prompt), widget.el, continueButton(ctx));
+  const compiled = compileGoal(goal, block.widget.sliders);
+  if (!compiled.ok) throw new Error(`goal on "${block.id}": ${compiled.error}`);
+  const assessed = assessment(block);
+  if (assessed === null) throw new Error(`block "${block.id}" does not assess`);
+  const goalLine = feedback("info", markdown(`**Goal:** ${goal.description}`, true));
+  return assess(
+    {
+      sectionClass: "block block-sim",
+      body: [markdown(block.prompt), widget.el, goalLine],
+      grader: goalGrader(goal, compiled.goal, widget),
+      hint: goal.hint,
+      objectiveIds: assessed.objectiveIds,
+    },
+    ctx,
+  );
 }
 
-type Grader = { readonly input: HTMLElement; readonly grade: () => { correct: boolean; message: string } | null; readonly reveal: () => string };
+type Grader = {
+  readonly input: HTMLElement | null;
+  readonly emptyMessage: string;
+  readonly grade: () => { readonly correct: boolean; readonly message: string } | null;
+  readonly reveal: () => string;
+};
 
 function mcqGrader(item: Extract<CheckItem, { type: "mcq" }>, name: string): Grader {
   // Authors (and models) tend to list the correct choice first, so never show the authored order.
@@ -81,6 +86,7 @@ function mcqGrader(item: Extract<CheckItem, { type: "mcq" }>, name: string): Gra
   );
   return {
     input,
+    emptyMessage: "Answer first.",
     grade: () => {
       const picked = radios.findIndex((r) => r.checked);
       const choice = choices[picked];
@@ -114,6 +120,7 @@ function numericGrader(item: Extract<CheckItem, { type: "numeric" }>): Grader {
   const decimals = Math.min(4, Math.max(0, Math.ceil(-Math.log10(item.tolerance || 1e-4))));
   return {
     input,
+    emptyMessage: "Answer first.",
     grade: () => {
       if (field.value.trim() === "") return null;
       const value = parseLearnerNumber(field.value);
@@ -174,6 +181,7 @@ function orderGrader(item: Extract<CheckItem, { type: "order" }>): Grader {
   render();
   return {
     input: list,
+    emptyMessage: "Answer first.",
     grade: () => {
       const correct = current.every((v, i) => v === item.items[i]);
       return { correct, message: correct ? item.feedback : "Not yet. Look at which step needs the result of another step." };
@@ -182,62 +190,122 @@ function orderGrader(item: Extract<CheckItem, { type: "order" }>): Grader {
   };
 }
 
+function sameValues(a: SliderValues, b: SliderValues): boolean {
+  const keys = Object.keys(a);
+  return keys.length === Object.keys(b).length && keys.every((key) => a[key] === b[key]);
+}
+
+function formatSlider(value: number, step: number): string {
+  if (!Number.isFinite(value)) return "undefined";
+  const decimals = (String(step).split(".")[1] ?? "").length;
+  return value.toFixed(decimals).replace("-", "−");
+}
+
+function goalGrader(goal: Goal, compiled: CompiledGoal, widget: MountedWidget): Grader {
+  let lastAnswered = widget.values();
+  return {
+    input: null,
+    emptyMessage: "Move a slider first.",
+    grade: () => {
+      const values = widget.values();
+      if (sameValues(values, lastAnswered)) return null;
+      lastAnswered = values;
+      if (goalMet(compiled, values)) return { correct: true, message: goal.feedbackSuccess };
+      return { correct: false, message: `Not yet. ${goal.description}` };
+    },
+    reveal: () => {
+      const solution = nearestSolution(compiled, widget.values());
+      if (solution.kind !== "found") throw new Error(solution.kind === "too-large" ? "goal grid is too large to search" : "no slider position meets the goal");
+      widget.setValues(solution.values);
+      const readouts = compiled.sliders
+        .map((slider) => {
+          const value = solution.values[slider.name];
+          if (value === undefined) throw new Error(`missing slider ${slider.name}`);
+          return `${slider.label} = ${formatSlider(value, slider.step)}`;
+        })
+        .join(", ");
+      return `${readouts}\n\n${goal.feedbackSuccess}`;
+    },
+  };
+}
+
+function assess(
+  spec: {
+    readonly sectionClass: string;
+    readonly body: readonly HTMLElement[];
+    readonly grader: Grader;
+    readonly hint: string | null;
+    readonly objectiveIds: readonly string[];
+  },
+  ctx: BlockContext,
+): HTMLElement {
+  let state: Attempt = start(spec.hint !== null);
+  const { grader } = spec;
+  const actions = h("div", { class: "actions" });
+  const hintSlot = h("div", {});
+  const status = h("div", { class: "check-status" });
+
+  function paint(): void {
+    const offered = offers(state);
+    if (offered === null) {
+      actions.replaceChildren();
+      return;
+    }
+    const buttons: HTMLButtonElement[] = [];
+    buttons.push(button(offered.submitLabel, submit));
+    if (offered.hint) buttons.push(button("Hint", showHint, "secondary"));
+    if (offered.reveal) buttons.push(button("Show answer", showAnswer, "secondary"));
+    actions.replaceChildren(...buttons);
+  }
+
+  function dispatch(event: AttemptEvent): void {
+    const before = outcome(state);
+    state = step(state, event);
+    const after = outcome(state);
+    if (before === null && after !== null) {
+      grader.input?.querySelectorAll("input, button").forEach((el) => el.setAttribute("disabled", ""));
+      actions.replaceChildren();
+      ctx.complete({ objectiveIds: spec.objectiveIds, firstTry: after.kind === "met" && after.firstTry });
+      return;
+    }
+    paint();
+  }
+
+  function submit(): void {
+    const result = grader.grade();
+    if (result === null) {
+      status.replaceChildren(feedback("info", grader.emptyMessage));
+      return;
+    }
+    status.replaceChildren(feedback(result.correct ? "correct" : "wrong", markdown(result.message, true)));
+    dispatch({ type: "graded", correct: result.correct });
+  }
+
+  function showHint(): void {
+    if (spec.hint === null) return;
+    hintSlot.replaceChildren(feedback("info", markdown(spec.hint, true)));
+    dispatch({ type: "hint" });
+  }
+
+  function showAnswer(): void {
+    const answer = grader.reveal();
+    status.replaceChildren(feedback("info", markdown(`**Answer:** ${answer}`)));
+    dispatch({ type: "reveal", answer });
+  }
+
+  paint();
+  return h("section", { class: spec.sectionClass }, ...spec.body, grader.input, actions, hintSlot, status);
+}
+
 function check(block: BlockOf<"check">, ctx: BlockContext): HTMLElement {
   const { item } = block;
   const grader = item.type === "mcq" ? mcqGrader(item, block.id) : item.type === "numeric" ? numericGrader(item) : orderGrader(item);
-  const status = h("div", { class: "check-status" });
-  const actions = h("div", { class: "actions" });
-  let attempts = 0;
-  let hintShown = false;
-
-  const finish = (firstTry: boolean): void => {
-    actions.replaceChildren();
-    grader.input.querySelectorAll("input, button").forEach((el) => el.setAttribute("disabled", ""));
-    ctx.complete({ objectiveIds: [block.objectiveId], firstTry });
-  };
-
-  const submit = (): void => {
-    const result = grader.grade();
-    if (result === null) {
-      status.replaceChildren(feedback("info", "Answer first."));
-      return;
-    }
-    attempts++;
-    status.replaceChildren(feedback(result.correct ? "correct" : "wrong", markdown(result.message, true)));
-    if (result.correct) {
-      finish(attempts === 1);
-      return;
-    }
-    const extra: HTMLElement[] = [];
-    if (block.hint !== null && !hintShown) {
-      extra.push(
-        button(
-          "Hint",
-          () => {
-            hintShown = true;
-            status.append(feedback("info", markdown(block.hint ?? "", true)));
-          },
-          "secondary",
-        ),
-      );
-    }
-    if (attempts >= ATTEMPTS_BEFORE_REVEAL) {
-      extra.push(
-        button(
-          "Show answer",
-          () => {
-            status.append(feedback("info", markdown(`**Answer:** ${grader.reveal()}`, true)));
-            finish(false);
-          },
-          "secondary",
-        ),
-      );
-    }
-    actions.replaceChildren(button("Check again", submit), ...extra);
-  };
-
-  actions.append(button("Check", submit));
-  return h("section", { class: "block block-check" }, markdown(item.stem), grader.input, actions, status);
+  const assessed = assessment(block);
+  if (assessed === null) throw new Error(`block "${block.id}" does not assess`);
+  return assess(
+    { sectionClass: "block block-check", body: [markdown(item.stem)], grader, hint: block.hint, objectiveIds: assessed.objectiveIds },
+    ctx,
+  );
 }
 
 export function renderBlock(block: Block, ctx: BlockContext): HTMLElement {

@@ -1,5 +1,6 @@
 import { evaluate, parseExpr, type Env, type Expr } from "../expr.ts";
-import type { Goal, Slider, Widget } from "../schema.ts";
+import type { SliderValues } from "../goal.ts";
+import type { Slider, Widget } from "../schema.ts";
 import { h } from "./dom.ts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -30,21 +31,33 @@ function formatNumber(n: number, decimals: number): string {
   return n.toFixed(decimals).replace("-", "−");
 }
 
-function sliderControls(sliders: readonly Slider[], env: Record<string, number>, onChange: () => void): HTMLElement {
-  const rows = sliders.map((s) => {
+type SliderControl = {
+  readonly name: string;
+  readonly input: HTMLInputElement;
+  readonly readout: HTMLElement;
+  readonly decimals: number;
+};
+
+function sliderControls(
+  sliders: readonly Slider[],
+  env: Record<string, number>,
+  onInput: () => void,
+): { readonly el: HTMLElement; readonly controls: readonly SliderControl[] } {
+  const controls = sliders.map((s) => {
     env[s.name] = s.initial;
     const decimals = (String(s.step).split(".")[1] ?? "").length;
-    const value = h("output", { class: "slider-value" }, formatNumber(s.initial, decimals));
+    const readout = h("output", { class: "slider-value" }, formatNumber(s.initial, decimals));
     const input = h("input", { type: "range", min: s.min, max: s.max, step: s.step, value: s.initial, "aria-label": s.label });
     input.addEventListener("input", () => {
-      const v = Number(input.value);
-      env[s.name] = v;
-      value.textContent = formatNumber(v, decimals);
-      onChange();
+      const value = Number(input.value);
+      env[s.name] = value;
+      readout.textContent = formatNumber(value, decimals);
+      onInput();
     });
-    return h("label", { class: "slider" }, h("span", { class: "slider-label" }, s.label), input, value);
+    const row = h("label", { class: "slider" }, h("span", { class: "slider-label" }, s.label), input, readout);
+    return { name: s.name, input, readout, decimals, row };
   });
-  return h("div", { class: "sliders" }, ...rows);
+  return { el: h("div", { class: "sliders" }, ...controls.map((c) => c.row)), controls };
 }
 
 /** A 1, 2 or 5 times a power of ten that gives about 6 to 12 grid lines across the range. */
@@ -141,23 +154,33 @@ function formulaOutputs(widget: Extract<Widget, { type: "formulaExplorer" }>, en
   return { el, redraw };
 }
 
-export type MountedWidget = { readonly el: HTMLElement; readonly onChange: (listener: (env: Env) => void) => void };
+export type MountedWidget = {
+  readonly el: HTMLElement;
+  readonly values: () => SliderValues;
+  readonly setValues: (values: SliderValues) => void;
+};
 
 export function mountWidget(widget: Widget): MountedWidget {
   const env: Record<string, number> = {};
-  const listeners: ((env: Env) => void)[] = [];
   let view: { el: Element; redraw: () => void } | null = null;
-  const changed = (): void => {
-    view?.redraw();
-    for (const l of listeners) l(env);
-  };
-  const controls = sliderControls(widget.sliders, env, changed);
+  const controls = sliderControls(widget.sliders, env, () => view?.redraw());
   view = widget.type === "functionPlot" ? functionPlot(widget, env) : formulaOutputs(widget, env);
   view.redraw();
-  return { el: h("div", { class: `widget widget-${widget.type}` }, view.el, controls), onChange: (l) => listeners.push(l) };
-}
-
-export function goalChecker(goal: Goal): (env: Env) => boolean {
-  const conditions = goal.conditions.map((c) => ({ expr: compile(c.expr), target: c.target, tolerance: c.tolerance }));
-  return (env) => conditions.every((c) => Math.abs(safeEval(c.expr, env) - c.target) <= c.tolerance);
+  const byName = new Map(controls.controls.map((control) => [control.name, control]));
+  return {
+    el: h("div", { class: `widget widget-${widget.type}` }, view.el, controls.el),
+    values: () => ({ ...env }),
+    setValues: (values) => {
+      for (const slider of widget.sliders) {
+        const value = values[slider.name];
+        if (value === undefined) continue;
+        env[slider.name] = value;
+        const control = byName.get(slider.name);
+        if (control === undefined) continue;
+        control.input.value = String(value);
+        control.readout.textContent = formatNumber(value, control.decimals);
+      }
+      view?.redraw();
+    },
+  };
 }
