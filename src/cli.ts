@@ -9,6 +9,7 @@ const USAGE = `lesson-forge <command>
 
   check <lesson.json>                      Validate the schema and run the pedagogy linter
   render <lesson.json> -o <out.html>       Check, then build a self-contained HTML lesson
+  site <dir...> -o <out-dir>               Render every lesson JSON in the dirs plus an index page
   generate --topic <t> --audience <a> -o <lesson.json> [--notes <n>] [--model <id>] [--rounds <n>]
            [--backend claude-code|api]     claude-code (default) uses your Claude Code login; api needs ANTHROPIC_API_KEY
                                            Draft with Claude, then loop validate -> lint -> critique -> revise`;
@@ -63,6 +64,25 @@ async function main(): Promise<void> {
       if (!reportLint(lesson)) process.exit(1);
       const { renderLesson } = await import("./render.ts");
       await writeOut(values.out, await renderLesson(lesson));
+      return;
+    }
+    case "site": {
+      const dirs = positionals.slice(1);
+      if (dirs.length === 0 || values.out === undefined) break;
+      const { readdir } = await import("node:fs/promises");
+      const { join, basename } = await import("node:path");
+      const { renderLesson, renderIndex } = await import("./render.ts");
+      const entries: { slug: string; lesson: Lesson }[] = [];
+      for (const dir of dirs) {
+        for (const name of (await readdir(dir)).filter((n) => n.endsWith(".json")).sort()) {
+          const lesson = await loadLesson(join(dir, name));
+          console.error(`${name}:`);
+          if (!reportLint(lesson)) process.exit(1);
+          entries.push({ slug: basename(name, ".json"), lesson });
+        }
+      }
+      for (const { slug, lesson } of entries) await writeOut(join(values.out, `${slug}.html`), await renderLesson(lesson));
+      await writeOut(join(values.out, "index.html"), await renderIndex(entries));
       return;
     }
     case "generate": {

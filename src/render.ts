@@ -35,3 +35,43 @@ export async function renderLesson(lesson: Lesson): Promise<string> {
 </html>
 `;
 }
+
+/** A landing page that links each rendered lesson. */
+export async function renderIndex(entries: readonly { slug: string; lesson: Lesson }[]): Promise<string> {
+  const css = await readFile(STYLES, "utf8");
+  const cards = entries
+    .map(
+      ({ slug, lesson }) => `<a class="block lesson-card" href="${encodeURIComponent(slug)}.html">
+<h2>${escapeHtml(lesson.title)}</h2>
+<p class="audience">${escapeHtml(lesson.audience)}</p>
+<p class="card-meta">${lesson.objectives.length} objectives · ${lesson.blocks.length} blocks · ${lesson.blocks.filter((b) => b.kind === "check" || b.kind === "simulation").length} interactions</p>
+</a>`,
+    )
+    .join("\n");
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lesson-forge</title>
+<style>${css}
+.lesson-card { display: block; color: inherit; text-decoration: none; }
+.lesson-card:hover { border-color: var(--accent); }
+.lesson-card h2 { margin: 0 0 4px; font-size: 1.2rem; }
+.lesson-card .audience { margin: 0 0 8px; }
+.card-meta { margin: 0; font-size: 0.85rem; color: var(--muted); }
+.intro a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main id="app">
+<header class="lesson-header">
+<h1>lesson-forge</h1>
+<p class="audience intro">Interactive lessons written by an AI as schema-checked JSON and rendered by tested components. <a href="https://github.com/juanakajuan/lesson-forge">Source on GitHub</a>.</p>
+</header>
+${cards}
+</main>
+</body>
+</html>
+`;
+}

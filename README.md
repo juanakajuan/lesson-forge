@@ -2,6 +2,8 @@
 
 A prototype framework that lets an AI write interactive lessons with consistent quality.
 
+Try the example lessons: https://juanakajuan.github.io/lesson-forge/
+
 The AI does not write UI code. It writes lesson JSON that must match a strict schema. A fixed set of tested components renders the JSON. A pedagogy linter rejects lessons that break the teaching rules, and the error messages tell the model how to fix them.
 
 ## Commands
@@ -31,6 +33,12 @@ npm run lf -- generate --topic "Ratios and rates" --audience "Grade 6, knows fra
 ```
 
 To call the Anthropic API directly instead, set `ANTHROPIC_API_KEY` and add `--backend api`.
+
+Build the GitHub Pages site (every lesson in `examples/` and `lessons/`, plus an index). The workflow in `.github/workflows/pages.yml` runs this on each push to `master`:
+
+```bash
+npm run lf -- site examples lessons -o _site
+```
 
 Run the tests and the type check:
 
