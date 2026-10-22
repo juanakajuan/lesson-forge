@@ -1,0 +1,12 @@
+[
+  { "topic": "Ratios and rates", "audience": "Grade 6, knows fractions" },
+  { "topic": "Solving two-step linear equations", "audience": "Grade 7, knows integer arithmetic" },
+  { "topic": "The Pythagorean theorem", "audience": "Grade 8, knows squares and square roots" },
+  { "topic": "Exponential growth and decay", "audience": "Grade 10, knows linear functions" },
+  { "topic": "Projectile motion", "audience": "High school physics, knows quadratic functions" },
+  { "topic": "Ohm's law in simple circuits", "audience": "Grade 9, no prior electricity course" },
+  { "topic": "Population growth with limited resources", "audience": "High school biology, knows percentages" },
+  { "topic": "Supply and demand", "audience": "First-year college economics, no calculus" },
+  { "topic": "Reading a nutrition label", "audience": "Adult learners, basic numeracy" },
+  { "topic": "Causes of the French Revolution", "audience": "Grade 10 history, no prior European history" }
+]

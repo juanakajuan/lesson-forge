@@ -34,6 +34,14 @@ npm run lf -- generate --topic "Ratios and rates" --audience "Grade 6, knows fra
 
 To call the Anthropic API directly instead, set `ANTHROPIC_API_KEY` and add `--backend api`.
 
+Measure the quality of the generate pipeline. This command runs `generate` `--runs` times for each topic in the topics file. It writes each run to the report: the outcome (clean, exhausted, or error), the rounds used, the lint rules that fired in each round, the schema-parse failures, the wall time, and the cost. It then prints a summary: the clean rate, the mean rounds, and the lint rules that fail most:
+
+```bash
+npm run lf -- eval --topics evals/topics.json --runs 3 -o out/eval.json
+```
+
+The command writes the report again after each run. If the command stops, the report keeps the runs that finished. `--rounds`, `--model`, and `--backend` work as they do for `generate`.
+
 Build the GitHub Pages site (every lesson in `examples/` and `lessons/`, plus an index). The workflow in `.github/workflows/pages.yml` runs this on each push to `master`:
 
 ```bash
