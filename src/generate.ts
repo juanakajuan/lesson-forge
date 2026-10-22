@@ -42,7 +42,8 @@ export type LessonModel = {
 export type Round = {
   readonly round: number;
   readonly issues: readonly Issue[];
-  readonly warnings: readonly Finding[];
+  /** Every lint finding of this round, errors and warnings. Empty when the schema check failed. */
+  readonly findings: readonly Finding[];
   readonly scores: Critique["scores"] | null;
 };
 
@@ -56,19 +57,18 @@ export type GenerateOptions = {
   readonly onRound?: (round: Round) => void;
 };
 
-type Assessment = { issues: Issue[]; warnings: Finding[]; scores: Critique["scores"] | null; lesson: Lesson | null };
+type Assessment = { issues: Issue[]; findings: Finding[]; scores: Critique["scores"] | null; lesson: Lesson | null };
 
 async function assess(raw: unknown, model: LessonModel, minCriticScore: number): Promise<Assessment> {
   const parsed = LessonSchema.safeParse(raw);
   if (!parsed.success) {
     const issues = parsed.error.issues.map((i) => ({ source: "schema" as const, text: `${i.path.join(".") || "(root)"}: ${i.message}` }));
-    return { issues, warnings: [], scores: null, lesson: null };
+    return { issues, findings: [], scores: null, lesson: null };
   }
   const findings = lint(parsed.data);
   const errors = findings.filter((f) => f.severity === "error");
-  const warnings = findings.filter((f) => f.severity === "warning");
   if (errors.length > 0) {
-    return { issues: errors.map((f) => ({ source: "lint", text: formatFinding(f) })), warnings, scores: null, lesson: parsed.data };
+    return { issues: errors.map((f) => ({ source: "lint", text: formatFinding(f) })), findings, scores: null, lesson: parsed.data };
   }
   // The critic runs only on lint-clean lessons: no point judging prose that must change anyway.
   const critique = await model.critique(parsed.data);
@@ -80,7 +80,7 @@ async function assess(raw: unknown, model: LessonModel, minCriticScore: number):
           { source: "critic", text: `Scores below ${minCriticScore}: ${weak.map((d) => `${d}=${critique.scores[d]}`).join(", ")}` },
           ...critique.fixes.map((f) => ({ source: "critic" as const, text: `${f.blockId === null ? "lesson" : `block "${f.blockId}"`}: ${f.instruction}` })),
         ];
-  return { issues, warnings, scores: critique.scores, lesson: parsed.data };
+  return { issues, findings, scores: critique.scores, lesson: parsed.data };
 }
 
 export async function generateLesson(brief: Brief, model: LessonModel, options: GenerateOptions): Promise<GenerateResult> {
@@ -88,7 +88,7 @@ export async function generateLesson(brief: Brief, model: LessonModel, options: 
   let raw = await model.draft(brief);
   for (let round = 1; round <= options.maxRounds; round++) {
     const result = await assess(raw, model, options.minCriticScore);
-    const record: Round = { round, issues: result.issues, warnings: result.warnings, scores: result.scores };
+    const record: Round = { round, issues: result.issues, findings: result.findings, scores: result.scores };
     rounds.push(record);
     options.onRound?.(record);
     if (result.issues.length === 0 && result.lesson !== null) return { ok: true, lesson: result.lesson, rounds };
